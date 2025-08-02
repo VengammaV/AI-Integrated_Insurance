@@ -11,3 +11,4 @@ tensorflow
 faiss-cpu
 tf-keras
 sentencepiece
+sentence-transformers
