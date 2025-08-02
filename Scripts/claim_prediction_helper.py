@@ -4,7 +4,7 @@ import joblib
 import numpy as np
 
 # Path to the saved model and its components
-MODEL_PATH =  "C:/Users/Harish/AI-Insurance/artifacts/Claim_Risk/model1_data.joblib"
+MODEL_PATH =  "artifacts/Claim_Risk/model1_data.joblib"
 
 # Load the model and its components
 model_data = joblib.load(MODEL_PATH)

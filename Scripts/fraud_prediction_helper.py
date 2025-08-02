@@ -4,10 +4,10 @@ import numpy as np
 from tensorflow.keras.models import load_model # type: ignore
 
 # Path to the saved model and its components
-MODEL_PATH =  "C:/Users/Harish/AI-Insurance/artifacts/anomaly_fraud/model_fraud_data.h5"
-MODEL_METADATA = "C:/Users/Harish/AI-Insurance/artifacts/anomaly_fraud/model_metadata.joblib"
+MODEL_PATH =  "artifacts/anomaly_fraud/model_fraud_data.h5"
+MODEL_METADATA = "artifacts/anomaly_fraud/model_metadata.joblib"
 
-iso = joblib.load('C:/Users/Harish/AI-Insurance/artifacts/anomaly_fraud/iso_model.pkl')
+iso = joblib.load('artifacts/anomaly_fraud/iso_model.pkl')
 
 # Load the model and its components
 model = load_model(MODEL_PATH)

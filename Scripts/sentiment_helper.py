@@ -2,7 +2,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 
 # Load the fine-tuned model and tokenizer
-MODEL_DIR = "C:/Users/Harish/AI-Insurance/artifacts/saved_bert_model"
+MODEL_DIR = "artifacts/saved_bert_model"
 model = AutoModelForSequenceClassification.from_pretrained(MODEL_DIR)
 tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR)
 

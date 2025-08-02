@@ -312,7 +312,7 @@ elif app_mode == "AI Assistant":
     # --------------------
     st.title("📄 Insurance Policy Chatbot")
 
-    excel_file_path = "C:/Users/Harish/AI-Insurance/Data/insurance_policies.xlsx"  # ✅ your file path here
+    excel_file_path = "Data/insurance_policies.xlsx"  # ✅ your file path here
     df = load_data(excel_file_path)
     policy_texts = df['Policy_Text_EN_Clean'].tolist()
     embed_model, faiss_index, _ = build_index(policy_texts)
