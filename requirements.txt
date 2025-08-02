@@ -7,5 +7,4 @@ scikit-learn==1.6.1
 sentence-transformers==4.1.0
 torch==2.5.1
 joblib==1.4.2
-tensorflow==2.20.0
 xgboost==3.0.1
