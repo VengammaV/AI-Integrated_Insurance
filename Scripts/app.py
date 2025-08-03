@@ -261,7 +261,7 @@ elif app_mode == "AI Assistant":
     import numpy as np
     import faiss
     from sentence_transformers import SentenceTransformer
-    from transformers import BartTokenizer, BartForConditionalGeneration
+    from transformers import AutoModelForCausalLM, AutoTokenizer
 
     # --------------------
     # STEP 1: Load Excel Data
@@ -296,9 +296,9 @@ elif app_mode == "AI Assistant":
     # STEP 4: Generate Answer using BART
     # --------------------
     @st.cache_resource
-    def load_bart():
-        tokenizer = BartTokenizer.from_pretrained("facebook/bart-large-cnn")
-        model = BartForConditionalGeneration.from_pretrained("facebook/bart-large-cnn")
+    def load_dialo():
+        tokenizer = AutoTokenizer.from_pretrained("microsoft/DialoGPT-small")
+        model = AutoModelForCausalLM.from_pretrained("microsoft/DialoGPT-small")
         return tokenizer, model
 
     def generate_answer(context, query, tokenizer, model):
@@ -316,13 +316,13 @@ elif app_mode == "AI Assistant":
     df = load_data(excel_file_path)
     policy_texts = df['Policy_Text_EN_Clean'].tolist()
     embed_model, faiss_index, _ = build_index(policy_texts)
-    tokenizer, bart_model = load_bart()
+    tokenizer, dialo_model = load_dialo()
 
     user_query = st.text_input("🧠 Ask a question:")
     if user_query:
         docs = retrieve(user_query, embed_model, faiss_index, policy_texts)
         combined_context = " ".join(docs)
-        answer = generate_answer(combined_context, user_query, tokenizer, bart_model)
+        answer = generate_answer(combined_context, user_query, tokenizer, dialo_model)
         st.markdown(f"**🤖 Answer:** {answer}")
 
 
