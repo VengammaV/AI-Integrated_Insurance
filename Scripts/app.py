@@ -260,73 +260,59 @@ elif app_mode == "AI Assistant":
     import pandas as pd
     import numpy as np
     import faiss
+    import pickle
+    from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
     from sentence_transformers import SentenceTransformer
-    from transformers import AutoModelForCausalLM, AutoTokenizer
 
     # --------------------
-    # STEP 1: Load Excel Data
-    # --------------------
-    @st.cache_data
-    def load_data(file_path):
-        df = pd.read_excel(file_path)
-        df = df.dropna(subset=['Policy_Text_EN_Clean'])  # Ensure non-empty entries
-        return df
-
-    # --------------------
-    # STEP 2: Embed Texts
+    # STEP 1: Load Data and Index
     # --------------------
     @st.cache_resource
-    def build_index(texts):
-        embed_model = SentenceTransformer('all-MiniLM-L6-v2')
-        embeddings = embed_model.encode(texts, show_progress_bar=True)
-        dim = embeddings.shape[1]
-        index = faiss.IndexFlatL2(dim)
-        index.add(np.array(embeddings))
-        return embed_model, index, embeddings
+    def load_resources():
+        with open("policy_texts.pkl", "rb") as f:
+            texts = pickle.load(f)
+        with open("embeddings.pkl", "rb") as f:
+            embeddings = pickle.load(f)
+        index = faiss.read_index("faiss_index.faiss")
+        return texts, embeddings, index
 
     # --------------------
-    # STEP 3: Retrieve Top k Chunks
+    # STEP 2: Load QA Model
+    # --------------------
+    @st.cache_resource
+    def load_model():
+        tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-small")
+        model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-small")
+        return tokenizer, model
+
+    # --------------------
+    # STEP 3: Query Retrieval
     # --------------------
     def retrieve(query, model, index, texts, k=3):
         q_emb = model.encode([query])
-        _, topk = index.search(np.array(q_emb), k)
+        _, topk = index.search(np.array(q_emb).astype('float32'), k)
         return [texts[i] for i in topk[0]]
 
     # --------------------
-    # STEP 4: Generate Answer using BART
+    # STEP 4: Generate Answer
     # --------------------
-    @st.cache_resource
-    def load_dialo():
-        tokenizer = AutoTokenizer.from_pretrained("microsoft/DialoGPT-small")
-        model = AutoModelForCausalLM.from_pretrained("microsoft/DialoGPT-small")
-        return tokenizer, model
-
     def generate_answer(context, query, tokenizer, model):
-        input_text = f"Context: {context}\n\nQuestion: {query}"
-        inputs = tokenizer(input_text, return_tensors="pt", truncation=True, max_length=512)
-        output = model.generate(**inputs, max_length=128)
-        return tokenizer.decode(output[0], skip_special_tokens=True)
+        input_text = f"Answer the question based on the context.\nContext: {context}\nQuestion: {query}"
+        inputs = tokenizer(input_text, return_tensors="pt", truncation=True)
+        outputs = model.generate(**inputs, max_length=128)
+        return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
     # --------------------
     # Streamlit UI
     # --------------------
     st.title("📄 Insurance Policy Chatbot")
 
-    excel_file_path = "Data/insurance_policies.xlsx"  # ✅ your file path here
-    df = load_data(excel_file_path)
-    policy_texts = df['Policy_Text_EN_Clean'].tolist()
-    embed_model, faiss_index, _ = build_index(policy_texts)
-    tokenizer, dialo_model = load_dialo()
+    texts, embeddings, index = load_resources()
+    tokenizer, qa_model = load_model()
 
     user_query = st.text_input("🧠 Ask a question:")
     if user_query:
-        docs = retrieve(user_query, embed_model, faiss_index, policy_texts)
-        combined_context = " ".join(docs)
-        answer = generate_answer(combined_context, user_query, tokenizer, dialo_model)
+        top_docs = retrieve(user_query, SentenceTransformer('all-MiniLM-L6-v2'), index, texts)
+        context = " ".join(top_docs)
+        answer = generate_answer(context, user_query, tokenizer, qa_model)
         st.markdown(f"**🤖 Answer:** {answer}")
-
-
-
-
-
-
