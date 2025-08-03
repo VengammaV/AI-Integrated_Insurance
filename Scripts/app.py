@@ -269,11 +269,11 @@ elif app_mode == "AI Assistant":
     # --------------------
     @st.cache_resource
     def load_resources():
-        with open("policy_texts.pkl", "rb") as f:
+        with open("Scripts/policy_texts.pkl", "rb") as f:
             texts = pickle.load(f)
-        with open("embeddings.pkl", "rb") as f:
+        with open("Scripts/embeddings.pkl", "rb") as f:
             embeddings = pickle.load(f)
-        index = faiss.read_index("faiss_index.faiss")
+        index = faiss.read_index("Scripts/faiss_index.faiss")
         return texts, embeddings, index
 
     # --------------------
