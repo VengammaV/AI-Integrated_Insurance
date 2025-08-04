@@ -257,62 +257,46 @@ elif app_mode == "AI Assistant":
     # chatbot_insurance.py
 
     import streamlit as st
-    import pandas as pd
-    import numpy as np
-    import faiss
     import pickle
+    import faiss
     from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
     from sentence_transformers import SentenceTransformer
 
-    # --------------------
-    # STEP 1: Load Data and Index
-    # --------------------
+    # Load models
     @st.cache_resource
-    def load_resources():
-        with open("Scripts/policy_texts.pkl", "rb") as f:
-            texts = pickle.load(f)
-        with open("Scripts/embeddings.pkl", "rb") as f:
-            embeddings = pickle.load(f)
-        index = faiss.read_index("Scripts/faiss_index.faiss")
-        return texts, embeddings, index
-
-    # --------------------
-    # STEP 2: Load QA Model
-    # --------------------
-    @st.cache_resource
-    def load_model():
+    def load_all():
+        encoder = SentenceTransformer("Scripts/sentence_encoder")
         tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-small")
         model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-small")
-        return tokenizer, model
 
-    # --------------------
-    # STEP 3: Query Retrieval
-    # --------------------
-    def retrieve(query, model, index, texts, k=3):
-        q_emb = model.encode([query])
-        _, topk = index.search(np.array(q_emb).astype('float32'), k)
-        return [texts[i] for i in topk[0]]
+        with open("Scripts/retrieval_data.pkl", "rb") as f:
+            texts, embeddings = pickle.load(f)
+        index = faiss.read_index("Scripts/policy_index.faiss")
+        return encoder, tokenizer, model, texts, index
 
-    # --------------------
-    # STEP 4: Generate Answer
-    # --------------------
-    def generate_answer(context, query, tokenizer, model):
-        input_text = f"Answer the question based on the context.\nContext: {context}\nQuestion: {query}"
-        inputs = tokenizer(input_text, return_tensors="pt", truncation=True)
-        outputs = model.generate(**inputs, max_length=128)
-        return tokenizer.decode(outputs[0], skip_special_tokens=True)
+    encoder, tokenizer, model, texts, index = load_all()
 
-    # --------------------
-    # Streamlit UI
-    # --------------------
-    st.title("📄 Insurance Policy Chatbot")
+    st.subheader("🧠 RAG-style Insurance Chatbot")
+    query = st.text_input("Ask your insurance question:")
 
-    texts, embeddings, index = load_resources()
-    tokenizer, qa_model = load_model()
+    if query:
+        # Embed query
+        query_vec = encoder.encode([query])
+        
+        D, I = index.search(query_vec, k=1)
+        top_score = D[0][0]  # lower is better for L2 distance (used by IndexFlatL2)
 
-    user_query = st.text_input("🧠 Ask a question:")
-    if user_query:
-        top_docs = retrieve(user_query, SentenceTransformer('all-MiniLM-L6-v2'), index, texts)
-        context = " ".join(top_docs)
-        answer = generate_answer(context, user_query, tokenizer, qa_model)
-        st.markdown(f"**🤖 Answer:** {answer}")
+        # Define a similarity threshold (empirical tuning)
+        SIMILARITY_THRESHOLD = 1.2  # Adjust based on testing
+
+        if top_score > SIMILARITY_THRESHOLD:
+            st.warning("Sorry, I couldn't find a relevant answer for your question.")
+        else:
+            retrieved_context = texts[I[0][0]]
+            prompt = f"Context:\n{retrieved_context}\n\nQuestion: {query}\nAnswer:"
+            inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
+            outputs = model.generate(**inputs, max_new_tokens=128)
+            answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
+            #st.success(answer)
+            with st.expander("🔍 Retrieved Policy Context"):
+                st.write(retrieved_context)
