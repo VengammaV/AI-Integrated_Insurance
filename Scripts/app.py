@@ -254,7 +254,7 @@ elif app_mode == "Policy Translation & Summarization":
 # Page 6: Chatbot - AI Assitant
 elif app_mode == "AI Assistant":
     st.title(" 🤖 Chatbot - AI Assistant")
-    # chatbot_insurance.py
+    
 
     import streamlit as st
     import pickle

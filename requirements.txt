@@ -13,3 +13,4 @@ tf-keras
 sentencepiece
 sentence-transformers
 openpyxl
+sacremoses
